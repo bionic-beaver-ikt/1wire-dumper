@@ -1,0 +1,2 @@
+avr-gcc -mmcu=atmega8 -I. -gdwarf-2 -std=c11 -Os -o code.o code.c
+avr-objcopy -O ihex code.o code.hex
