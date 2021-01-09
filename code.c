@@ -1,12 +1,12 @@
-#define F_CPU 8000000UL
+#define F_CPU 12000000UL
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
 
-#define THERM_PORT PORTD
-#define THERM_DDR DDRD
-#define THERM_PIN PIND
-#define THERM_DQ PD3
+#define THERM_PORT PORTB
+#define THERM_DDR DDRB
+#define THERM_PIN PINB
+#define THERM_DQ PB5
 
 #define LED0 PD0
 #define LED1 PD1
@@ -28,13 +28,13 @@
 #define THERM_OUTPUT_MODE() THERM_DDR|=(1<<THERM_DQ)
 #define THERM_LOW() THERM_PORT&=~(1<<THERM_DQ)
 
-int num_of_sign=6;
-int command[32]={23,45,23,17,43,63,65,34,82,14,02,4,14,13,12,11,10,9,8,7,6,5,4,3,2,1};
+int num_of_sign=32;
+int command[32];//={99,99,99,99,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,99};
 //command[]={2};
 
 void show()
 {
-     while (num_of_sign>0)
+     while (num_of_sign>=0)
 	 //for (int times=0; times<128; times--)
 	{
 		PORTD&=~((1<<DDI1)|(1<<DDI2)|(1<<DDI3)|(1<<DDI4));
@@ -91,11 +91,21 @@ ISR (TIMER1_COMPA_vect)
     DDRD|=((1<<DDI_C)|(1<<DDI_D)); //Порты данных на вывод
     PORTB&=~((1<<DDI_A)|(1<<DDI_B));
     PORTD&=~((1<<DDI_C)|(1<<DDI_D)); //0
-	if(num_of_sign==2) num_of_sign=30;
 	num_of_sign--;
-	sei();
-	show();
-	_delay_ms(2000);
+	if(num_of_sign<0)
+    {
+		sei();
+        show();
+		 cli();
+		 //num_of_sign=32;
+		 //_delay_ms(500);
+    }
+    else
+    {
+        sei();
+        show();
+    }
+	//_delay_ms(2000);
 }        
 
 
@@ -105,8 +115,8 @@ int main (void)
     cli();
      TCCR1B |= (1<<WGM12); //CTC Mode
      TIMSK |= (1<<OCIE1A);
-     //OCR1AH = 0xB7;
-	 OCR1AH = 0x57;
+     OCR1AH = 0xD7;
+	 //OCR1AH = 0x57;
      OCR1AL = 0x1B;
      TCCR1B |= (1<<CS12);
      
@@ -124,16 +134,16 @@ int main (void)
     int led1_bit=0;
     
 	
-	/*THERM_LOW();
+void hren()
+{
+	THERM_LOW();
 	THERM_OUTPUT_MODE();
 	_delay_us(480);
 	THERM_INPUT_MODE();
-	_delay_us(60);*/
+	_delay_us(60);
 	int bit=(THERM_PIN & (1<<THERM_DQ));
 	_delay_us(420);
-
-	sei();
-	_delay_ms(2000);
+}
     
 void led0_blink()
 {
@@ -165,32 +175,46 @@ void led1_blink()
     
 void init_receive()
 {
-	THERM_LOW();
 	THERM_INPUT_MODE();
-	while (THERM_PIN&(1<<THERM_DQ)) {};
-	_delay_us(480);
+	_delay_us(10);
+	while (THERM_PIN&(1<<THERM_DQ)) {}; //1
+	_delay_us(470); //2
     
-	for (int i=0; i<480; i++)
+	for (int i=0; i<480; i++) //3
 	{
-		if(THERM_PIN&(1<<THERM_DQ))
-		{
+		if(THERM_PIN&(1<<THERM_DQ)) //3a
+		{    
 			i=480;
-			_delay_us(55);
+			_delay_us(55); //3b
 			THERM_OUTPUT_MODE();
-			_delay_us(235);
+			_delay_us(235); //c
 			THERM_INPUT_MODE();
-			_delay_us(190);
-			while (THERM_PIN&(1<<THERM_DQ)) {};
-			for (int j=0; j<32; j++)
+			_delay_us(1); //(190)
+            
+			for (int j=31; j>=0; j--)
 			{
-				for (int k=0; k<120; k++)
+				command[j] = 0;
+				while (THERM_PIN&(1<<THERM_DQ)) {};
+				for (int kl=0; kl<100; kl++)
 				{
-					if(THERM_PIN&(1<<THERM_DQ))
-					{
-						if (k<15) command[j] = 1; else command[j] = 0;
-						k=120;
+					if (THERM_PIN&(1<<THERM_DQ))
+                    {
+                        command[j] = kl;
+						/*if (kl<20)
+                        {
+                            command[j] = kl+1;
+                            //PORTB&=~(1<<PB4);
+                            //PORTB|=(1<<PB3);
+                        }
+                        else
+                        {
+                            command[j] = 0;
+                            //PORTB&=~(1<<PB3);
+                            //PORTB|=(1<<PB4);
+                        }*/
+						kl=101;
 					}
-				_delay_us(1);
+                    else _delay_us(1);
 				}
 			}
 		}
@@ -205,7 +229,7 @@ void transmit()
 	THERM_LOW();
 	THERM_OUTPUT_MODE();
 	_delay_us(1);
-	if(bit) THERM_INPUT_MODE();
+	//if(bit) THERM_INPUT_MODE();
 	_delay_us(60);
 	THERM_INPUT_MODE();
 	
@@ -214,7 +238,7 @@ void transmit()
 	_delay_us(1);
 	THERM_INPUT_MODE();
 	_delay_us(14);
-	if(THERM_PIN&(1<<THERM_DQ)) bit=1;
+	//if(THERM_PIN&(1<<THERM_DQ)) bit=1;
 	_delay_us(45);
 }    
 
@@ -227,12 +251,26 @@ void transmit()
     while (1)
     {
 		cli();
+        num_of_sign=32;
+        THERM_LOW();
+		
 		PORTD&=~((1<<DDI1)|(1<<DDI2)|(1<<DDI3)|(1<<DDI4));
 		PORTB&=~((1<<DDI_A)|(1<<DDI_B));
 		PORTD&=~((1<<DDI_C)|(1<<DDI_D));
-		PORTD|=(1<<DDI_D);
-		PORTD|=((1<<DDI1)|(1<<DDI2)|(1<<DDI3)|(1<<DDI4));
-		_delay_ms(13333);
+        
+        DDRB|=(1<<PB3);  
+        PORTB|=(1<<PB3);
+		_delay_ms(10000); 
+		PORTB&=~(1<<PB3);
+		init_receive();
+		sei();
+		_delay_ms(1000);
+		cli();
+		PORTB|=(1<<PB3);
+		//PORTD|=(1<<DDI_D);
+		//PORTD|=((1<<DDI1)|(1<<DDI2)|(1<<DDI3)|(1<<DDI4));
+		_delay_ms(1000);
+		
      //init_receive();
         //DDRD&=~((1<<DDI1)|(1<<DDI2)|(1<<DDI3)|(1<<DDI4));
         
