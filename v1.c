@@ -6,8 +6,8 @@
  */ 
 
 #define F_CPU 8000000UL
-#define BAUD 9600L // Скорость обмена данными
-#define UBRRL_value (F_CPU/(BAUD*16))-1 //Согластно заданной скорости подсчитываем значение для регистра UBRR
+#define BAUD 9600L // Г‘ГЄГ®Г°Г®Г±ГІГј Г®ГЎГ¬ГҐГ­Г  Г¤Г Г­Г­Г»Г¬ГЁ
+#define UBRRL_value (F_CPU/(BAUD*16))-1 //Г‘Г®ГЈГ«Г Г±ГІГ­Г® Г§Г Г¤Г Г­Г­Г®Г© Г±ГЄГ®Г°Г®Г±ГІГЁ ГЇГ®Г¤Г±Г·ГЁГІГ»ГўГ ГҐГ¬ Г§Г­Г Г·ГҐГ­ГЁГҐ Г¤Г«Гї Г°ГҐГЈГЁГ±ГІГ°Г  UBRR
 //#define UBRRL_value 25
 
 #include <avr/io.h>
@@ -254,13 +254,13 @@ void therm_read_temperature(char *buffer){
 
 
 void init_USART() {
-	UBRRL = UBRRL_value;       //Младшие 8 бит UBRRL_value
-	UBRRH = (UBRRL_value) >> 8;  //Старшие 8 бит UBRRL_value
-	UCSRB = (1<<TXEN);         //Бит разрешения передачи
-	//UCSRC = (1<< UCSZ0)|(1<< UCSZ1); //|(1<< URSEL) Устанавливем формат 8 бит данных
+	UBRRL = UBRRL_value;       //ГЊГ«Г Г¤ГёГЁГҐ 8 ГЎГЁГІ UBRRL_value
+	UBRRH = (UBRRL_value) >> 8;  //Г‘ГІГ Г°ГёГЁГҐ 8 ГЎГЁГІ UBRRL_value
+	UCSRB = (1<<TXEN);         //ГЃГЁГІ Г°Г Г§Г°ГҐГёГҐГ­ГЁГї ГЇГҐГ°ГҐГ¤Г Г·ГЁ
+	//UCSRC = (1<< UCSZ0)|(1<< UCSZ1); //|(1<< URSEL) Г“Г±ГІГ Г­Г ГўГ«ГЁГўГҐГ¬ ГґГ®Г°Г¬Г ГІ 8 ГЎГЁГІ Г¤Г Г­Г­Г»Гµ
 	UCSRC = (1<< UCSZ0)|(1<< UCSZ1)|(1<< URSEL);
-	//UCSRA = (1<<U2X); //Удвоение скорости
-	//UCSRB = ( ( 1 << RXEN ) | ( 1 << TXEN ) ); //Разрешение на прием и на передачу через USART
+	//UCSRA = (1<<U2X); //Г“Г¤ГўГ®ГҐГ­ГЁГҐ Г±ГЄГ®Г°Г®Г±ГІГЁ
+	//UCSRB = ( ( 1 << RXEN ) | ( 1 << TXEN ) ); //ГђГ Г§Г°ГҐГёГҐГ­ГЁГҐ Г­Г  ГЇГ°ГЁГҐГ¬ ГЁ Г­Г  ГЇГҐГ°ГҐГ¤Г Г·Гі Г·ГҐГ°ГҐГ§ USART
 }
 
 /*void DDI_show(int8_t digit, uint16_t decimal) {
@@ -281,8 +281,8 @@ void init_USART() {
 }*/
 
 void send_UART(char value) {
-	while(!( UCSRA & (1 << UDRE)));   // Ожидаем когда очистится буфер передачи
-	UDR = value; // Помещаем данные в буфер, начинаем передачу
+	while(!( UCSRA & (1 << UDRE)));   // ГЋГ¦ГЁГ¤Г ГҐГ¬ ГЄГ®ГЈГ¤Г  Г®Г·ГЁГ±ГІГЁГІГ±Гї ГЎГіГґГҐГ° ГЇГҐГ°ГҐГ¤Г Г·ГЁ
+	UDR = value; // ГЏГ®Г¬ГҐГ№Г ГҐГ¬ Г¤Г Г­Г­Г»ГҐ Гў ГЎГіГґГҐГ°, Г­Г Г·ГЁГ­Г ГҐГ¬ ГЇГҐГ°ГҐГ¤Г Г·Гі
 }
 
 int main(void)
@@ -302,32 +302,17 @@ int main(void)
 	//DDRB=0xFF;
 	PORTB=0xFF;
 	PORTD&=~((1<<SEG_1)|(1<<SEG_2)|(1<<SEG_3)|(1<<SEG_4));
-	_delay_ms(2000);
-	sei();
-	_delay_ms(2000);
-	cli();
+	_delay_ms(1000);
 
-
-//DDRD |= 0b00001000;
-//init_USART();
-//ADCSRA |= (1<<ADPS2) | (1<<ADPS1); //| (1<<ADPS0);
-//send_UART(0x2B);
-//DDI1_DDR|=((1<<DDI1_A)|(1<<DDI1_B)|(1<<DDI1_C)|(1<<DDI1_D)|(1<<DDI1_DOT)|(1<<DDI2_A)|(1<<DDI2_B)|(1<<DDI2_C)|(1<<DDI2_D)|(1<<DDI2_DOT));
-//DDI3_DDR|=((1<<DDI3_A)|(1<<DDI3_B)|(1<<DDI3_C)|(1<<DDI3_D)|(1<<DDI3_DOT));
-//DDRC|=(1<<DDI3_B);
-//DDI1_PORT&=~((1<<DDI1_A)|(1<<DDI1_B)|(1<<DDI1_C)|(1<<DDI1_D)|(1<<DDI1_DOT)|(1<<DDI2_A)|(1<<DDI2_B)|(1<<DDI2_C)|(1<<DDI2_D)|(1<<DDI2_DOT));
-//DDI3_PORT&=~((1<<DDI3_A)|(1<<DDI3_B)|(1<<DDI3_C)|(1<<DDI3_D)|(1<<DDI3_DOT));
-//PORTC&=~(1<<DDI3_B);
-
-char buffer[15];
+//char buffer[15];
 //uint8_t adc_value_h;
 //uint8_t adc_value_l;
-uint16_t adc_value;
-int voltage = 0;
+//uint16_t adc_value;
+//int voltage = 0;
 
 while(1)
 {
-	cli();
+cli();
 lamp();
 _delay_ms(100);
 lamp();
@@ -342,12 +327,22 @@ _delay_ms(100);
 // therm_reset(); //!
 //therm_write_byte(THERM_CMD_SKIPROM);
 // therm_write_byte(THERM_CMD_READROM); //!
-
+num_of_sign=3;
 code[0]=17;
 code[1]=14;
 code[2]=5;
 code[3]=17;
-
+sei();
+_delay_ms(1000);
+cli();
+therm_reset();
+therm_write_byte(THERM_CMD_READROM);
+num_of_sign=4;
+rom[0]=therm_read_byte();
+rom[1]=therm_read_byte();
+rom[2]=therm_read_byte();
+rom[3]=therm_read_byte();
+sei();
 /*rom[0]=therm_read_byte();
 rom[1]=therm_read_byte();
 rom[2]=therm_read_byte();
@@ -371,9 +366,8 @@ code[3]=temperature[1]&0b00001111; */
 code2[1]=therm_read_byte();
 code2[2]=therm_read_byte();
 code2[3]=therm_read_byte();*/
-num_of_sign=8;
 //therm_read_temperature(buffer);
-sei();
+cli();
 lamp();
 _delay_ms(500);
 lamp();
@@ -386,7 +380,7 @@ lamp();
 _delay_ms(500);
 
 //_delay_ms(1000);
-cli();
+
 //DDI_show(digit, decimal);
 //digit/10;
 
