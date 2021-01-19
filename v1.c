@@ -77,9 +77,9 @@
 #define LED3_OFF() LED_PORT&=~(1<<LED3)
 
 //int seg[16] = {0xFC,0x60,0xDA,0xF2,0x66,0xB6,0xBE,0xE0,0xFE,0xF6,0xEE,0x3E,0x9C,0x7A,0x9E,0x8E};
-int seg[20] = {175,11,181,157,130,155,187,12,191,159,63,186,179,188,180,146,47,177};
+int seg[20] = {175,12,181,157,30,155,187,13,191,159,63,186,163,188,179,51,48,178,56,55};
 int a=1;
-int num_of_sign=8;
+int num_of_sign=4;
 int code[4]={1,2,3,4};
 //int rom[8];
 uint8_t rom[8];
@@ -123,21 +123,12 @@ void seg_show()
 ISR (TIMER1_COMPA_vect)
 {
     cli();
-    //PORTD&=~((1<<SEG_1)|(1<<SEG_2)|(1<<SEG_3)|(1<<SEG_4));
-    //PORTB=0xFF;
     num_of_sign--;
     sei();
-
-
-code[0]=(rom[(3-num_of_sign)*2]&0xF0)>>4;
-code[1]=(rom[(3-num_of_sign)*2]&0x0F);
-code[2]=(rom[(3-num_of_sign)*2+1]&0xF0)>>4;
-code[3]=(rom[(3-num_of_sign)*2+1]&0x0F);
-//code[0]=1;
-//code[1]=3;
-//code[2]=5;
-//code[3]=7;
-
+	code[0]=(rom[(3-num_of_sign)*2]&0xF0)>>4;
+	code[1]=(rom[(3-num_of_sign)*2]&0x0F);
+	code[2]=(rom[(3-num_of_sign)*2+1]&0xF0)>>4;
+	code[3]=(rom[(3-num_of_sign)*2+1]&0x0F);
     seg_show();
 
 if(num_of_sign<0) cli();
@@ -147,14 +138,11 @@ void lamp()
 {
 	if (a!=1)
 	{
-		//PORTD |= 0b00001000;
-		//PORTD &= 0b111110111;
 		LED1_ON();
 		a=1;
 	}
 	else
 	{
-		//PORTD |= 0b00001000;
 		LED1_OFF();
 		a=0;
 	}
@@ -209,17 +197,94 @@ void therm_write_byte(uint8_t byte){
 	}
 }
 
+int init_receive()
+{
+	int code = 0;
+	THERM_INPUT_MODE();
+	_delay_us(10);
+	while (THERM_PIN&(1<<THERM_DQ)) {}; //1
+	_delay_us(470); //2
+
+	for (int i=0; i<480; i++) //3
+	{
+		if(THERM_PIN&(1<<THERM_DQ)) //3a
+		{
+			i=480;
+			_delay_us(55); //3b
+			THERM_OUTPUT_MODE();
+			_delay_us(235); //c
+			THERM_INPUT_MODE();
+			_delay_us(1); //(190)
+
+			for (int j=0; j<8; j++)
+			{
+				while (THERM_PIN&(1<<THERM_DQ)) {};
+				for (int kl=0; kl<100; kl++)
+				{
+					if (THERM_PIN&(1<<THERM_DQ))
+                    {
+						if (kl < 4)
+						{
+							switch (j)
+							{
+								case 0:
+								code += 1;
+								break;
+								case 1:
+								code += 2;
+								break;
+								case 2:
+								code += 4;
+								break;
+								case 3:
+								code += 8;
+								break;
+								case 4:
+								code += 16;
+								break;
+								case 5:
+								code += 32;
+								break;
+								case 6:
+								code +=64;
+								break;
+								case 7:
+								code += 128;
+								break;
+							}
+						}
+						kl=101;
+					}
+                    else _delay_us(1);
+				}
+			}
+		}
+	_delay_us(1);
+	}
+return code;
+}
+
+void transmit(int byte)
+{
+	THERM_INPUT_MODE();
+	uint8_t i=8;
+	while(i--){
+		while (THERM_PIN&(1<<THERM_DQ)) {};
+		if (!(byte&1)) THERM_OUTPUT_MODE();
+		_delay_us(16);
+		THERM_INPUT_MODE();
+		byte>>=1;
+	}
+}
+
 #define THERM_CMD_CONVERTTEMP 0x44
 #define THERM_CMD_RSCRATCHPAD 0xbe
 #define THERM_CMD_SEARCHROM 0xf0
 #define THERM_CMD_READROM 0x33
 #define THERM_CMD_MATCHROM 0x55
 #define THERM_CMD_SKIPROM 0xcc
-
 #define THERM_DECIMAL_STEPS_12BIT 625 //.0625
 
-//int test = 9;
-//int test2 = 9;
 
 void therm_read_temperature(char *buffer){
 	while (therm_reset()) {} ;
@@ -256,39 +321,6 @@ void therm_read_temperature(char *buffer){
 	//sprintf(buffer, "%+d.%04u C", digit, decimal);
 }
 
-
-void init_USART() {
-	UBRRL = UBRRL_value;       //Ìëàäøèå 8 áèò UBRRL_value
-	UBRRH = (UBRRL_value) >> 8;  //Ñòàðøèå 8 áèò UBRRL_value
-	UCSRB = (1<<TXEN);         //Áèò ðàçðåøåíèÿ ïåðåäà÷è
-	//UCSRC = (1<< UCSZ0)|(1<< UCSZ1); //|(1<< URSEL) Óñòàíàâëèâåì ôîðìàò 8 áèò äàííûõ
-	UCSRC = (1<< UCSZ0)|(1<< UCSZ1)|(1<< URSEL);
-	//UCSRA = (1<<U2X); //Óäâîåíèå ñêîðîñòè
-	//UCSRB = ( ( 1 << RXEN ) | ( 1 << TXEN ) ); //Ðàçðåøåíèå íà ïðèåì è íà ïåðåäà÷ó ÷åðåç USART
-}
-
-/*void DDI_show(int8_t digit, uint16_t decimal) {
-	DDI1_PORT&=~(1<<DDI2_DOT);
-	if (sign == 0) DDI1_PORT&=~(1<<DDI1_DOT); else DDI1_PORT|=(1<<DDI1_DOT);
-	if ((digit/10)/8 != 1) DDI1_PORT&=~(1<<DDI1_D); else  DDI1_PORT|=(1<<DDI1_D);
-	if ((digit/10)/4 != 1) DDI1_PORT&=~(1<<DDI1_C); else  DDI1_PORT|=(1<<DDI1_C);
-	if ((digit/10)%4/2 != 1) DDI1_PORT&=~(1<<DDI1_B); else  DDI1_PORT|=(1<<DDI1_B);
-	if ((digit/10)%2 != 1) DDI1_PORT&=~(1<<DDI1_A); else  DDI1_PORT|=(1<<DDI1_A);
-	if ((digit%10)/8 != 1) DDI1_PORT&=~(1<<DDI2_D); else  DDI1_PORT|=(1<<DDI2_D);
-	if ((digit%10)/4 != 1) DDI1_PORT&=~(1<<DDI2_C); else  DDI1_PORT|=(1<<DDI2_C);
-	if ((digit%10)%4/2 != 1) DDI1_PORT&=~(1<<DDI2_B); else  DDI1_PORT|=(1<<DDI2_B);
-	if ((digit%10)%2 != 1) DDI1_PORT&=~(1<<DDI2_A); else  DDI1_PORT|=(1<<DDI2_A);
-	if ((decimal/100)/8 != 1) DDI3_PORT&=~(1<<DDI3_D); else  DDI3_PORT|=(1<<DDI3_D);
-	if ((decimal/100)/4 != 1) PORTC&=~(1<<DDI3_C); else  PORTC|=(1<<DDI3_C); //!!!!!
-	if ((decimal/100)%4/2 != 1) DDI3_PORT&=~(1<<DDI3_B); else  DDI3_PORT|=(1<<DDI3_B);
-	if ((decimal/100)%2 != 1) DDI3_PORT&=~(1<<DDI3_A); else  DDI3_PORT|=(1<<DDI3_A);
-}*/
-
-void send_UART(char value) {
-	while(!( UCSRA & (1 << UDRE)));   // Îæèäàåì êîãäà î÷èñòèòñÿ áóôåð ïåðåäà÷è
-	UDR = value; // Ïîìåùàåì äàííûå â áóôåð, íà÷èíàåì ïåðåäà÷ó
-}
-
 int main(void)
 {
 	cli();
@@ -298,8 +330,8 @@ int main(void)
     //OCR1AH = 0x57;
     OCR1AL = 0x1B;
     TCCR1B |= (1<<CS12);
-LED_DDR |= (1<<LED1);
-LED_PORT |= (1<<LED1);
+	LED_DDR |= (1<<LED1);
+	LED_PORT |= (1<<LED1);
 	//LED_DDR|= ((1<<LED1)|(1<<LED2)); //|(1<<LED3));
 	DDRB=0xFF;
 	DDRD|=((1<<SEG_1)|(1<<SEG_2)|(1<<SEG_3)|(1<<SEG_4));
@@ -308,13 +340,6 @@ LED_PORT |= (1<<LED1);
 	PORTB=0xFF;
 	PORTD&=~((1<<SEG_1)|(1<<SEG_2)|(1<<SEG_3)|(1<<SEG_4));
 	_delay_ms(1000);
-
-
-//char buffer[15];
-//uint8_t adc_value_h;
-//uint8_t adc_value_l;
-//uint16_t adc_value;
-//int voltage = 0;
 
 while(1)
 {
@@ -345,41 +370,64 @@ _delay_ms(100);
 while (therm_reset()) {} ;
 
 therm_write_byte(THERM_CMD_READROM);
-num_of_sign=8;
-//rom[0]=therm_read_byte();
-//rom[1]=therm_read_byte();
-//rom[2]=therm_read_byte();
-//rom[3]=therm_read_byte();
+num_of_sign=4;
+OCR1AH = 0x57;
 rom[0]=0x01;
 rom[1]=0x23;
 rom[2]=0x45;
 rom[3]=0x67;
-rom[4]=0x89
+rom[4]=0x89;
 rom[5]=0xAB;
 rom[6]=0xCD;
 rom[7]=0xEF;
-//rom[4]=therm_read_byte();
-//rom[5]=therm_read_byte();
-//rom[6]=therm_read_byte();
-//rom[7]=therm_read_byte();
 sei();
 _delay_ms(2000);
-/*for (int i=0; i<8; i++)
-{
-code[2*i]=(rom[i]&0xF0)>>4;
-code[2*i+1]=(rom[i]&0x0F)>;
-}
-code[0]=(temperature[0]&0b11110000)>>4;
-code[1]=temperature[0]&0b00001111;
-code[2]=(temperature[1]&0b11110000)>>4;
-code[3]=temperature[1]&0b00001111; */
-//therm_reset();
-/*code2[0]=therm_read_byte();
-code2[1]=therm_read_byte();
-code2[2]=therm_read_byte();
-code2[3]=therm_read_byte();*/
-//therm_read_temperature(buffer);
 cli();
+OCR1AH = 0xB7;
+num_of_sign=4;
+rom[0]=therm_read_byte();
+rom[1]=therm_read_byte();
+rom[2]=therm_read_byte();
+rom[3]=therm_read_byte();
+rom[4]=therm_read_byte();
+rom[5]=therm_read_byte();
+rom[6]=therm_read_byte();
+rom[7]=therm_read_byte();
+sei();
+_delay_ms(2000);
+cli();
+while (init_receive() == 0x33) {}
+transmit(rom[0]);
+transmit(rom[1]);
+transmit(rom[2]);
+transmit(rom[3]);
+transmit(rom[4]);
+transmit(rom[5]);
+transmit(rom[6]);
+transmit(rom[7]);
+_delay_ms(500);
+while (init_receive() == 0x33) {}
+transmit(rom[0]);
+transmit(rom[1]);
+transmit(rom[2]);
+transmit(rom[3]);
+transmit(rom[4]);
+transmit(rom[5]);
+transmit(rom[6]);
+transmit(rom[7]);
+_delay_ms(500);
+while (init_receive() == 0x33) {}
+transmit(rom[0]);
+transmit(rom[1]);
+transmit(rom[2]);
+transmit(rom[3]);
+transmit(rom[4]);
+transmit(rom[5]);
+transmit(rom[6]);
+transmit(rom[7]);
+//sei();
+//_delay_ms(2000);
+//cli();
 lamp();
 _delay_ms(500);
 lamp();
