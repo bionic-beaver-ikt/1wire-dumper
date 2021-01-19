@@ -129,14 +129,14 @@ ISR (TIMER1_COMPA_vect)
     sei();
 
 
-/*code[0]=(rom[(7-num_of_sign)*2]&0xF0)>>4;
-code[1]=(rom[(7-num_of_sign)*2]&0x0F);
-code[2]=(rom[(7-num_of_sign)*2+1]&0xF0)>>4;
-code[3]=(rom[(7-num_of_sign)*2+1]&0x0F);*/
-code[0]=1;
-code[1]=3;
-code[2]=5;
-code[3]=7;
+code[0]=(rom[(3-num_of_sign)*2]&0xF0)>>4;
+code[1]=(rom[(3-num_of_sign)*2]&0x0F);
+code[2]=(rom[(3-num_of_sign)*2+1]&0xF0)>>4;
+code[3]=(rom[(3-num_of_sign)*2+1]&0x0F);
+//code[0]=1;
+//code[1]=3;
+//code[2]=5;
+//code[3]=7;
 
     seg_show();
 
@@ -346,16 +346,24 @@ while (therm_reset()) {} ;
 
 therm_write_byte(THERM_CMD_READROM);
 num_of_sign=8;
-rom[0]=therm_read_byte();
-rom[1]=therm_read_byte();
-rom[2]=therm_read_byte();
-rom[3]=therm_read_byte();
-rom[4]=therm_read_byte();
-rom[5]=therm_read_byte();
-rom[6]=therm_read_byte();
-rom[7]=therm_read_byte();
+//rom[0]=therm_read_byte();
+//rom[1]=therm_read_byte();
+//rom[2]=therm_read_byte();
+//rom[3]=therm_read_byte();
+rom[0]=0x01;
+rom[1]=0x23;
+rom[2]=0x45;
+rom[3]=0x67;
+rom[4]=0x89
+rom[5]=0xAB;
+rom[6]=0xCD;
+rom[7]=0xEF;
+//rom[4]=therm_read_byte();
+//rom[5]=therm_read_byte();
+//rom[6]=therm_read_byte();
+//rom[7]=therm_read_byte();
 sei();
-
+_delay_ms(2000);
 /*for (int i=0; i<8; i++)
 {
 code[2*i]=(rom[i]&0xF0)>>4;
