@@ -18,7 +18,7 @@
 #define THERM_PORT PORTC
 #define THERM_DDR DDRC
 #define THERM_PIN PINC
-#define THERM_DQ PC5
+#define THERM_DQ PC4
 
 /*#define SEG_A PB7
 #define SEG_B PB6
@@ -77,7 +77,7 @@
 #define LED3_OFF() LED_PORT&=~(1<<LED3)
 
 //int seg[16] = {0xFC,0x60,0xDA,0xF2,0x66,0xB6,0xBE,0xE0,0xFE,0xF6,0xEE,0x3E,0x9C,0x7A,0x9E,0x8E};
-int seg[20] = {1,2,4,8,16,155,32,64,128,0xF6,0xEE,0x3E,0x9C,0x7A,179,0x8E,0,178};
+int seg[20] = {175,11,181,157,130,155,187,12,191,159,63,186,179,188,180,146,47,177};
 int a=1;
 int num_of_sign=8;
 int code[4]={1,2,3,4};
@@ -132,7 +132,11 @@ ISR (TIMER1_COMPA_vect)
 /*code[0]=(rom[(7-num_of_sign)*2]&0xF0)>>4;
 code[1]=(rom[(7-num_of_sign)*2]&0x0F);
 code[2]=(rom[(7-num_of_sign)*2+1]&0xF0)>>4;
-code[3]=(rom[(7-num_of_sign)*2+1]&0x0F);*/ //!
+code[3]=(rom[(7-num_of_sign)*2+1]&0x0F);*/
+code[0]=1;
+code[1]=3;
+code[2]=5;
+code[3]=7;
 
     seg_show();
 
@@ -294,7 +298,8 @@ int main(void)
     //OCR1AH = 0x57;
     OCR1AL = 0x1B;
     TCCR1B |= (1<<CS12);
-
+LED_DDR |= (1<<LED1);
+LED_PORT |= (1<<LED1);
 	//LED_DDR|= ((1<<LED1)|(1<<LED2)); //|(1<<LED3));
 	DDRB=0xFF;
 	DDRD|=((1<<SEG_1)|(1<<SEG_2)|(1<<SEG_3)|(1<<SEG_4));
@@ -303,6 +308,7 @@ int main(void)
 	PORTB=0xFF;
 	PORTD&=~((1<<SEG_1)|(1<<SEG_2)|(1<<SEG_3)|(1<<SEG_4));
 	_delay_ms(1000);
+
 
 //char buffer[15];
 //uint8_t adc_value_h;
@@ -327,31 +333,29 @@ _delay_ms(100);
 // therm_reset(); //!
 //therm_write_byte(THERM_CMD_SKIPROM);
 // therm_write_byte(THERM_CMD_READROM); //!
-num_of_sign=3;
-code[0]=17;
-code[1]=14;
-code[2]=5;
-code[3]=17;
-sei();
-_delay_ms(1000);
-cli();
-therm_reset();
+//num_of_sign=4;
+//code[0]=17;
+//code[1]=14;
+//code[2]=5;
+//code[3]=17;
+//sei();
+//_delay_ms(2000);
+//cli();
+//therm_reset();
+while (therm_reset()) {} ;
+
 therm_write_byte(THERM_CMD_READROM);
-num_of_sign=4;
+num_of_sign=8;
 rom[0]=therm_read_byte();
 rom[1]=therm_read_byte();
 rom[2]=therm_read_byte();
 rom[3]=therm_read_byte();
+rom[4]=therm_read_byte();
+rom[5]=therm_read_byte();
+rom[6]=therm_read_byte();
+rom[7]=therm_read_byte();
 sei();
-/*rom[0]=therm_read_byte();
-rom[1]=therm_read_byte();
-rom[2]=therm_read_byte();
-rom[3]=therm_read_byte();*/ //!
 
-//rom[4]=therm_read_byte();
-//rom[5]=therm_read_byte();
-//rom[6]=therm_read_byte();
-//rom[7]=therm_read_byte();
 /*for (int i=0; i<8; i++)
 {
 code[2*i]=(rom[i]&0xF0)>>4;
