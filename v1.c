@@ -341,6 +341,20 @@ int main(void)
 	PORTD&=~((1<<SEG_1)|(1<<SEG_2)|(1<<SEG_3)|(1<<SEG_4));
 	_delay_ms(1000);
 
+num_of_sign=4;
+OCR1AH = 0x57;
+rom[0]=0x01;
+rom[1]=0x23;
+rom[2]=0x45;
+rom[3]=0x67;
+rom[4]=0x89;
+rom[5]=0xAB;
+rom[6]=0xCD;
+rom[7]=0xEF;
+sei();
+_delay_ms(2000);
+cli();
+
 while(1)
 {
 cli();
@@ -368,21 +382,7 @@ _delay_ms(100);
 //cli();
 //therm_reset();
 while (therm_reset()) {} ;
-
 therm_write_byte(THERM_CMD_READROM);
-num_of_sign=4;
-OCR1AH = 0x57;
-rom[0]=0x01;
-rom[1]=0x23;
-rom[2]=0x45;
-rom[3]=0x67;
-rom[4]=0x89;
-rom[5]=0xAB;
-rom[6]=0xCD;
-rom[7]=0xEF;
-sei();
-_delay_ms(2000);
-cli();
 OCR1AH = 0xB7;
 num_of_sign=4;
 rom[0]=therm_read_byte();
