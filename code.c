@@ -190,6 +190,56 @@ void transmit(int byte)
 	}
 }
 
+uint8_t therm_reset(){
+	uint8_t i;
+	THERM_LOW();
+	THERM_OUTPUT_MODE();
+	_delay_us(480);
+	THERM_INPUT_MODE();
+	_delay_us(60);
+	i=(THERM_PIN & (1<<THERM_DQ));
+	_delay_us(420);
+	return i;
+}
+
+void therm_write_bit(uint8_t bit){
+	THERM_LOW();
+	THERM_OUTPUT_MODE();
+	_delay_us(1); //1mks!!!
+	if(bit) THERM_INPUT_MODE();
+	_delay_us(80);
+	THERM_INPUT_MODE();
+}
+
+uint8_t therm_read_bit(void){
+	uint8_t bit=0;
+	THERM_LOW();
+	THERM_OUTPUT_MODE();
+	_delay_us(1);
+	THERM_INPUT_MODE();
+	_delay_us(14);
+	if(THERM_PIN&(1<<THERM_DQ)) bit=1;
+	_delay_us(45);
+	return bit;
+}
+
+uint8_t therm_read_byte(void){
+	uint8_t i=8, n=0;
+	while(i--){
+		n>>=1;
+		n|=(therm_read_bit()<<7);
+	}
+	return n;
+}
+
+void therm_write_byte(uint8_t byte){
+	uint8_t i=8;
+	while(i--){
+		therm_write_bit(byte&1);
+		byte>>=1;
+	}
+}
+
     while (1)
     {
 		cli();
@@ -202,20 +252,24 @@ void transmit(int byte)
 
         DDRB|=(1<<PB3);
         PORTB|=(1<<PB3);
-		_delay_ms(1000);
+		_delay_ms(3000);
 		PORTB&=~(1<<PB3);
-		if (init_receive() == 0x33)
-		{
-			command[3]=73;
-			transmit(0x12);
-			transmit(0x34);
-			transmit(0x56);
-			transmit(0x78);
-			transmit(0x9A);
-			transmit(0xBC);
-			transmit(0xDE);
-			transmit(0xF0);
-		}
+		command[3]=73;
+		_delay_ms(500);
+		//transmit(0x33);
+		while (therm_reset()) {} ;
+		therm_write_byte(0x33);
+		//if (init_receive() == 0x33)
+		
+			command[0]=therm_read_byte();
+			command[1]=therm_read_byte();
+			command[2]=therm_read_byte();
+			command[3]=therm_read_byte();
+			command[4]=therm_read_byte();
+			command[5]=therm_read_byte();
+			command[6]=therm_read_byte();
+			command[7]=therm_read_byte();
+		
 		sei();
 		_delay_ms(1000);
 		cli();
