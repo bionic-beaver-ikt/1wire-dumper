@@ -1,6 +1,10 @@
 avr-gcc -mmcu=atmega8 -I. -gdwarf-2 -std=c11 -Os -o code.o code.c
 avr-objcopy -O ihex code.o code.hex
+
 avrdude -p m8 -c usbasp -P usb -U flash:w:code.hex
 
 avrdude -p m8 -c usbasp -P usb -U flash:r:7seg_counter.hex:h
+avrdude.exe -p m8 -c Usbasp -B 1 -P usb  -U lock:r:lock.hex:r -U hfuse:r:hfuse.hex:r -U lfuse:r:lfuse.hex:r
 
+
+avr-gcc -mmcu=atmega8 -I. -gdwarf-2 -std=gnu99 -Os -o v1.o v1.c && avr-objcopy -O ihex v1.o v1.hex && avr-gcc -mmcu=atmega8 -I. -gdwarf-2 -std=gnu99 -Os -o code.o code.c && avr-objcopy -O ihex code.o code.hex

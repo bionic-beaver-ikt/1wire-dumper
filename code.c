@@ -1,4 +1,4 @@
-#define F_CPU 12000000UL
+#define F_CPU 8000000UL
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
@@ -26,7 +26,8 @@
 int num_of_sign=4;
 int command[4]={0,0,0,0}; //={99,99,99,99,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,99};
 //command[]={2};
-
+   int led0_bit=0;
+	
 void show()
 {
      while (num_of_sign>=0)
@@ -85,17 +86,7 @@ ISR (TIMER1_COMPA_vect)
 	if(num_of_sign<0) cli();
 }
 
-int main (void)
-{
-    cli();
-     TCCR1B |= (1<<WGM12); //CTC Mode
-     TIMSK |= (1<<OCIE1A);
-     OCR1AH = 0xD7;
-	 //OCR1AH = 0x57;
-     OCR1AL = 0x1B;
-     TCCR1B |= (1<<CS12);
-    int led0_bit=0;
-
+	
 void led0_blink()
 {
     if (led0_bit==0)
@@ -108,86 +99,6 @@ void led0_blink()
         THERM_DDR|=(1<<THERM_DQ);
         led0_bit=0;
     }
-}
-
-int init_receive()
-{
-	int code = 0;
-	THERM_INPUT_MODE();
-	_delay_us(10);
-	while (THERM_PIN&(1<<THERM_DQ)) {}; //1
-	_delay_us(470); //2
-
-	for (int i=0; i<480; i++) //3
-	{
-		if(THERM_PIN&(1<<THERM_DQ)) //3a
-		{
-			i=480;
-			_delay_us(55); //3b
-			THERM_OUTPUT_MODE();
-			_delay_us(235); //c
-			THERM_INPUT_MODE();
-			_delay_us(1); //(190)
-
-			for (int j=0; j<8; j++)
-			{
-				while (THERM_PIN&(1<<THERM_DQ)) {};
-				for (int kl=0; kl<100; kl++)
-				{
-					if (THERM_PIN&(1<<THERM_DQ))
-                    {
-						if (kl < 4)
-						{
-							switch (j)
-							{
-								case 0:
-								code += 1;
-								break;
-								case 1:
-								code += 2;
-								break;
-								case 2:
-								code += 4;
-								break;
-								case 3:
-								code += 8;
-								break;
-								case 4:
-								code += 16;
-								break;
-								case 5:
-								code += 32;
-								break;
-								case 6:
-								code +=64;
-								break;
-								case 7:
-								code += 128;
-								break;
-							}
-						}
-						kl=101;
-					}
-                    else _delay_us(1);
-				}
-			}
-		}
-	_delay_us(1);
-	}
-return code;
-}
-
-void transmit(int byte)
-{
-	THERM_INPUT_MODE();
-	uint8_t i=8;
-	while(i--){
-		while (THERM_PIN&(1<<THERM_DQ)) {};
-		if (!(byte&1)) THERM_OUTPUT_MODE();
-		_delay_us(16);
-		THERM_INPUT_MODE();
-		byte>>=1;
-	}
 }
 
 uint8_t therm_reset(){
@@ -205,9 +116,9 @@ uint8_t therm_reset(){
 void therm_write_bit(uint8_t bit){
 	THERM_LOW();
 	THERM_OUTPUT_MODE();
-	_delay_us(1); //1mks!!!
+	_delay_us(1);
 	if(bit) THERM_INPUT_MODE();
-	_delay_us(80);
+	_delay_us(60);
 	THERM_INPUT_MODE();
 }
 
@@ -240,40 +151,39 @@ void therm_write_byte(uint8_t byte){
 	}
 }
 
+int main (void)
+{
+    cli();
+     TCCR1B |= (1<<WGM12); //CTC Mode
+     TIMSK |= (1<<OCIE1A);
+     //OCR1AH = 0xD7;
+	 OCR1AH = 0x57;
+     OCR1AL = 0x1B;
+     TCCR1B |= (1<<CS12);
+
+	PORTD&=~((1<<DDI1)|(1<<DDI2)|(1<<DDI3)|(1<<DDI4));
+	PORTB&=~((1<<DDI_A)|(1<<DDI_B));
+	PORTD&=~((1<<DDI_C)|(1<<DDI_D));
+    THERM_LOW();
+	_delay_ms(100);
+	//DDRB|=(1<<PB5);
     while (1)
     {
 		cli();
         num_of_sign=8;
-        THERM_LOW();
-
-		PORTD&=~((1<<DDI1)|(1<<DDI2)|(1<<DDI3)|(1<<DDI4));
-		PORTB&=~((1<<DDI_A)|(1<<DDI_B));
-		PORTD&=~((1<<DDI_C)|(1<<DDI_D));
-
-        DDRB|=(1<<PB3);
-        PORTB|=(1<<PB3);
-		_delay_ms(3000);
-		PORTB&=~(1<<PB3);
-		command[3]=73;
-		_delay_ms(500);
-		//transmit(0x33);
 		while (therm_reset()) {} ;
+		//PORTB |= (1<<PB5);
 		therm_write_byte(0x33);
-		//if (init_receive() == 0x33)
-		
-			command[0]=therm_read_byte();
-			command[1]=therm_read_byte();
-			command[2]=therm_read_byte();
-			command[3]=therm_read_byte();
-			command[4]=therm_read_byte();
-			command[5]=therm_read_byte();
-			command[6]=therm_read_byte();
-			command[7]=therm_read_byte();
-		
+		command[0]=therm_read_byte();
+		command[1]=therm_read_byte();
+		command[2]=therm_read_byte();
+		command[3]=therm_read_byte();
+		command[4]=therm_read_byte();
+		command[5]=therm_read_byte();
+		command[6]=therm_read_byte();
+		command[7]=therm_read_byte();
 		sei();
 		_delay_ms(1000);
 		cli();
-		PORTB|=(1<<PB3);
-		_delay_ms(1000);
     }
 }
